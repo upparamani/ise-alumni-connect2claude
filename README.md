@@ -57,7 +57,7 @@ Paste your URL between the quotes in **both** files, e.g. `const API_URL = 'http
 Keep `index.html`, `admin.html` and `demo-seed.js` in one folder and leave `API_URL` empty. Open `index.html`. You will see the 20 seeded alumni; logins, edits and approvals work, but the data lives only in that browser. Demo admin passcode: `gitise2026`.
 
 ## Security notes (what is and isn't protected)
-- Passwords: per-user random salt + SHA-256, never stored or logged in plain text. 5 wrong attempts lock that account (or the admin login) for 15 minutes. Logins last 2 hours.
+- Passwords: per-user random salt + SHA-256, never stored or logged in plain text. Alumni may choose any username/password (no length rule), so a very short password is easy to guess; the 5-attempt lockout limits the damage. The admin passcode must be at least 8 characters. 5 wrong attempts lock that account (or the admin login) for 15 minutes. Logins last 2 hours.
 - Privacy tiers are enforced **on the server**: Stealth profiles and every contact detail (phone, email, USN) are never sent to the public page; Semi-Anonymous profiles have name, company and LinkedIn removed before sending.
 - The admin passcode is checked on the server, not stored in the web page. Change the default on first login.
 - The Apps Script URL is public by design (the website must call it), so rely on the passcode/lockout, keep the Sheet private, and keep `Code.gs` out of GitHub (it contains the default passcode).
