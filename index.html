@@ -40,6 +40,7 @@ tailwind.config = { theme: { extend: { colors: {
         <div>
           <p class="text-[11px] uppercase tracking-widest text-gold-500 font-semibold">Karnataka Law Society's</p>
           <h1 class="text-lg sm:text-xl font-bold leading-tight">KLS Gogte Institute of Technology, Belagavi</h1>
+          <p class="text-xs text-blue-200 mt-0.5 leading-snug">Autonomous institution under VTU Belagavi · NAAC A+ · Tier-1 NBA accredited · Established 1979 · ISE Department since 1999.</p>
           <p class="text-sm text-blue-100">Department of Information Science &amp; Engineering · <span class="text-gold-500 font-semibold">Alumni Connect</span></p>
         </div>
       </div>
@@ -58,11 +59,17 @@ tailwind.config = { theme: { extend: { colors: {
 
 <main class="flex-1 max-w-7xl w-full mx-auto px-4 py-6">
   <div id="banner" class="hidden mb-4 rounded-lg border px-4 py-3 text-sm"></div>
+  <div id="welcome" class="hidden mb-5 rounded-xl border border-emerald-300 bg-gradient-to-r from-emerald-50 to-amber-50 px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+    <div><p class="text-lg font-bold text-navy-800">🙏 Welcome home, <span id="wName"></span>!</p><p id="wSub" class="text-sm text-slate-600"></p></div>
+    <button id="wEdit" class="px-4 py-2 rounded-lg bg-gold-500 hover:bg-gold-600 text-navy-900 font-bold text-sm">✏️ Update my profile</button>
+  </div>
 
-  <!-- Intro -->
-  <section class="mb-6">
-    <h2 class="text-2xl font-bold text-navy-800">Connecting global alumni with students &amp; faculty</h2>
-    <p class="text-slate-600 text-sm mt-1">Autonomous institution under VTU Belagavi · NAAC A+ · Tier-1 NBA accredited · Established 1979 · ISE Department since 1999.</p>
+  <!-- Home-coming hero -->
+  <section class="mb-6 rounded-2xl bg-white shadow border-l-8 border-gold-500 px-5 py-5 sm:px-7 sm:py-6">
+    <p class="text-[11px] uppercase tracking-[.25em] text-gold-600 font-semibold mb-1">ISE · Alumni Connect · Home-coming</p>
+    <h2 class="text-3xl sm:text-4xl font-extrabold text-navy-800 leading-tight">Wherever life takes you, <span class="text-gold-600">ISE is home.</span></h2>
+    <p class="mt-3 text-lg sm:text-xl italic text-navy-700">“A family never asks its children for anything. It only asks where life took you, and stands a little taller when you answer.”</p>
+    <p class="mt-3 text-slate-600 text-sm sm:text-base max-w-4xl">You may belong to many alumni networks. This one is simply <b>home</b>. We don’t count what you give; we celebrate what you have become, because a school is never proud of its fees, it is proud of its Einsteins. Come home, share your story, and say hello to the juniors walking the corridors you once did.</p>
   </section>
 
   <!-- Metrics -->
@@ -164,7 +171,8 @@ function createCore(store, env) {
   const rid = () => env.uuid().replace(/-/g, '');
   const hashPw = (salt, pw) => env.sha256(salt + ':' + pw);
   const pick = (r, keys) => { const o = {}; keys.forEach(k => { o[k] = r[k] == null ? '' : r[k]; }); return o; };
-  const pwOk = p => typeof p === 'string' && p.length >= 8 && p.length <= 100;
+  const pwOk = p => typeof p === 'string' && p.length >= 1 && p.length <= 200;          // alumni: any password they like
+  const admPwOk = p => typeof p === 'string' && p.length >= 8 && p.length <= 200;       // admin passcode keeps a minimum
 
   /* ---------- validation ---------- */
   function clean(f, allowed) {
@@ -203,7 +211,8 @@ function createCore(store, env) {
     return {
       id: r.id, name: semi ? '' : r.name, batch: r.batch, designation: r.designation,
       company: semi ? '' : r.company, city: r.city, country: r.country, domain: r.domain,
-      expertise: r.expertise, linkedin: semi ? '' : r.linkedin, mentor: truthy(r.mentor), talks: truthy(r.talks), privacy: r.privacy
+      expertise: r.expertise, linkedin: semi ? '' : r.linkedin, mentor: truthy(r.mentor), talks: truthy(r.talks), privacy: r.privacy,
+      registered: truthy(r.claimed)   // true once the alumnus has activated their own login (or self-registered)
     };
   }
 
@@ -293,9 +302,9 @@ function createCore(store, env) {
       const c = clean(rec, ALUM_FIELDS);
       ['name', 'usn', 'batch', 'designation', 'company', 'city', 'country', 'domain', 'email'].forEach(k => { if (!c[k]) fail('Please fill all required fields.'); });
       c.privacy = c.privacy || 'public';
-      const u = s(q.username, 40).toLowerCase();
-      if (!/^[a-z0-9._-]{3,30}$/.test(u)) fail('Username must be 3 to 30 characters: letters, numbers, dot, underscore or hyphen.');
-      if (!pwOk(q.password)) fail('Password must be at least 8 characters.');
+      const u = s(q.username, 100).toLowerCase();
+      if (!u) fail('Please choose a username.');
+      if (!pwOk(q.password)) fail('Please choose a password.');
       const all = store.all();
       if (all.some(x => lc(x.username) === u)) fail('That username is already taken.');
       if (all.some(x => (nameKey(x.name) === nameKey(c.name) && x.batch === c.batch) || (c.usn && lc(x.usn) === lc(c.usn))))
@@ -325,9 +334,8 @@ function createCore(store, env) {
       const r = sessionAlumnus(q.token);
       checkLock('c:' + r.id);
       if (!r.passwordHash || hashPw(r.salt, String(q.oldPassword || '')) !== r.passwordHash) { recordFail('c:' + r.id); fail('Your current password is incorrect.'); }
-      if (!pwOk(q.newPassword)) fail('New password must be at least 8 characters.');
+      if (!pwOk(q.newPassword)) fail('Please enter a new password.');
       if (q.newPassword === q.oldPassword) fail('Please choose a password different from the current one.');
-      if (lc(q.newPassword) === lc(r.username)) fail('Password must not be the same as your username.');
       clearFail('c:' + r.id);
       setPassword(r, q.newPassword, false);
       r.claimed = true; r.updatedAt = env.now(); r.updatedBy = r.username;
@@ -416,7 +424,7 @@ function createCore(store, env) {
 
     adminPasscode(q) {
       requireAdmin(q.token);
-      if (!pwOk(q.newPasscode)) fail('Passcode must be at least 8 characters.');
+      if (!admPwOk(q.newPasscode)) fail('Passcode must be at least 8 characters.');
       const salt = rid();
       store.setProp('ADMIN_SALT', salt);
       store.setProp('ADMIN_HASH', hashPw(salt, q.newPasscode));
@@ -434,7 +442,7 @@ function createCore(store, env) {
 
 
 /* ======== API layer: talks to the Google Apps Script backend, or to a local demo store when API_URL is empty ======== */
-const API_URL = 'https://script.google.com/macros/s/AKfycbw7jB3Hh9qigVA1j2vBIwnZJiLGflYSoq93vytbgROi_tXvjjnWEZeOm-a2V72nF9hD/exec';   // ← paste your Apps Script Web App URL here (ends with /exec). Leave empty to try the portal in local demo mode.
+const API_URL = '';   // ← paste your Apps Script Web App URL here (ends with /exec). Leave empty to try the portal in local demo mode.
 
 function sha256hex(str) {            // synchronous SHA-256 (UTF-8) used by the local demo store only
   let ascii = unescape(encodeURIComponent(str));
@@ -582,6 +590,8 @@ function renderStats(){
   animateTo($('mBatches'), new Set(v.map(a=>a.batch)).size);
   animateTo($('mMentors'), v.filter(a=>a.mentor||a.talks).length);
 }
+const mine = a => !!(session && session.profile && session.profile.id === a.id);
+const regTag = a => a.registered ? '<span class="text-emerald-700 font-semibold" title="This alumnus has activated their ISE Alumni Connect account">✅ Registered</span>' : '';
 function badges(a){
   let h = '';
   if (a.mentor) h += `<span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-semibold">🤝 Open to Mentor</span>`;
@@ -592,12 +602,12 @@ function cardHtml(a){
   const semi = a.privacy === 'semi';
   const li = !semi ? safeUrl(a.linkedin) : '';
   const place = [a.city, a.country].filter(Boolean).map(esc).join(', ');
-  return `<article class="bg-white rounded-xl shadow hover:shadow-md transition p-4 flex flex-col gap-2 border-t-4 ${semi?'border-slate-400':'border-gold-500'}">
+  return `<article class="bg-white rounded-xl shadow hover:shadow-md transition p-4 flex flex-col gap-2 border-t-4 ${semi?'border-slate-400':'border-gold-500'}${mine(a)?' ring-2 ring-emerald-400':''}">
     <div class="flex items-center gap-3">
       <div class="w-12 h-12 rounded-full ${semi?'bg-slate-200 text-slate-600':'bg-navy-800 text-white'} flex items-center justify-center font-bold shrink-0">${semi?'🔒':esc(initials(a.name))}</div>
       <div class="min-w-0">
         <h4 class="font-bold text-navy-800 leading-tight break-words">${esc(displayName(a))}${semi?' <span title="Semi-anonymous profile">🔒</span>':''}</h4>
-        <p class="text-xs text-slate-500">Batch ${esc(a.batch)}</p>
+        <p class="text-xs text-slate-500">Batch ${esc(a.batch)}${a.registered ? ' · ' + regTag(a) : ''}</p>
       </div>
     </div>
     <p class="text-sm font-semibold text-slate-700">${esc(a.designation)}</p>
@@ -610,6 +620,7 @@ function cardHtml(a){
       ${badges(a)}
     </div>
     ${li ? `<a href="${esc(li)}" target="_blank" rel="noopener noreferrer" class="mt-2 inline-block text-sm font-semibold text-navy-700 hover:text-gold-600">in&nbsp;Connect on LinkedIn ↗</a>` : ''}
+    ${mine(a) ? `<div class="mt-2 pt-2 border-t border-emerald-200"><p class="text-[11px] text-emerald-700 font-semibold mb-1">⭐ This is your card</p><button data-edit-own class="px-3 py-1.5 rounded-lg bg-gold-500 hover:bg-gold-600 text-navy-900 font-bold text-sm">✏️ Edit / Update my profile</button></div>` : ''}
   </article>`;
 }
 function groupBy(list, fn){ const m = new Map(); list.forEach(a => { const k = fn(a); if(!m.has(k)) m.set(k,[]); m.get(k).push(a); }); return m; }
@@ -634,12 +645,12 @@ function renderResults(){
           <thead class="text-left text-xs text-slate-500 uppercase"><tr><th class="px-4 py-2">Name</th><th class="px-4 py-2">Designation</th><th class="px-4 py-2">Company</th><th class="px-4 py-2">Location</th><th class="px-4 py-2">Domain</th><th class="px-4 py-2"></th></tr></thead>
           <tbody>${items.map(a => { const semi=a.privacy==='semi'; const li = !semi?safeUrl(a.linkedin):''; return `
             <tr class="border-t">
-              <td class="px-4 py-2 font-semibold">${esc(displayName(a))}${semi?' 🔒':''}</td>
+              <td class="px-4 py-2 font-semibold">${esc(displayName(a))}${semi?' 🔒':''}${a.registered ? '<div class="text-[11px] font-normal">' + regTag(a) + '</div>' : ''}</td>
               <td class="px-4 py-2">${esc(a.designation)}</td>
               <td class="px-4 py-2">${semi?'<span class="text-slate-400">—</span>':esc(a.company)}</td>
               <td class="px-4 py-2">${esc(a.city)}, ${esc(a.country)}</td>
               <td class="px-4 py-2">${esc(a.domain)}</td>
-              <td class="px-4 py-2 whitespace-nowrap">${li?`<a class="text-navy-700 font-semibold hover:text-gold-600" target="_blank" rel="noopener noreferrer" href="${esc(li)}">LinkedIn ↗</a>`:''} ${badges(a)}</td>
+              <td class="px-4 py-2 whitespace-nowrap">${li?`<a class="text-navy-700 font-semibold hover:text-gold-600" target="_blank" rel="noopener noreferrer" href="${esc(li)}">LinkedIn ↗</a>`:''} ${badges(a)} ${mine(a)?'<button data-edit-own class="px-2 py-1 rounded bg-gold-500 text-navy-900 text-xs font-bold">✏️ Edit my profile</button>':''}</td>
             </tr>`; }).join('')}</tbody>
         </table></div>
       </details>`).join('');
@@ -713,9 +724,23 @@ const TOK = 'gitise_alumni_token';
 const saveTok = t => { try { sessionStorage.setItem(TOK, t); } catch(e){} };
 const loadTok = () => { try { return sessionStorage.getItem(TOK); } catch(e){ return null; } };
 const clearTok = () => { try { sessionStorage.removeItem(TOK); } catch(e){} };
+const PRIV_LABEL = {public:'Public', semi:'Semi-Anonymous', stealth:'Stealth (hidden from the public directory)'};
+function renderWelcome(){
+  const w = $('welcome');
+  if (!session) { w.classList.add('hidden'); return; }
+  const p = session.profile;
+  $('wName').textContent = p.name || p.username;
+  let sub = 'Logged in as @' + p.username + ' · your profile is currently ' + (PRIV_LABEL[p.privacy] || 'Public') + '.';
+  if (p.status === 'pending') sub += ' It will appear once a faculty coordinator approves it.';
+  if (p.mustChange) sub += ' Please set your new password to continue.';
+  $('wSub').textContent = sub;
+  w.classList.remove('hidden');
+}
 function updateAuthUI(){
   const on = !!session;
   $('btnLogin').classList.toggle('hidden', on); $('btnProfile').classList.toggle('hidden', !on); $('btnLogout').classList.toggle('hidden', !on);
+  renderWelcome();
+  if (loaded) renderResults();       // show/hide "Edit my profile" on the owner's own card
 }
 function endSession(){ session = null; clearTok(); updateAuthUI(); }
 async function authCall(action, payload){
@@ -744,7 +769,7 @@ function openLogin(msg){
     e.preventDefault(); const f = e.target.elements; busy(e.target, true);
     try {
       const d = await api('login', {username: f.u.value, password: f.p.value});
-      session = {token: d.token, profile: d.profile}; saveTok(d.token); updateAuthUI();
+      session = {token: d.token, profile: d.profile}; saveTok(d.token); updateAuthUI(); toast('Welcome, ' + (d.profile.name || d.profile.username) + '!');
       if (d.mustChange) openForceChange(); else openProfile();
     } catch(err){ showErr('loginErr', err.message); busy(e.target, false); }
   };
@@ -752,7 +777,7 @@ function openLogin(msg){
 
 function openForceChange(){
   openModal('Set your new password', `
-    <p class="text-slate-600 mb-3">For your security, please replace the temporary password the department gave you with one of your own (at least 8 characters).</p>
+    <p class="text-slate-600 mb-3">For your security, please replace the temporary password the department gave you with one of your own. Any password you like.</p>
     <form id="fcForm" class="space-y-3">
       <label class="block">Temporary password<input name="o" type="password" autocomplete="current-password" class="${INP}"></label>
       <label class="block">New password<input name="n" type="password" autocomplete="new-password" class="${INP}"></label>
@@ -764,7 +789,7 @@ function openForceChange(){
     e.preventDefault(); const f = e.target.elements;
     if (f.n.value !== f.r.value) return showErr('fcErr', 'The two new passwords do not match.');
     busy(e.target, true);
-    try { const d = await authCall('changePassword', {oldPassword: f.o.value, newPassword: f.n.value}); session.profile = d.profile; toast('Password updated.'); openProfile(); }
+    try { const d = await authCall('changePassword', {oldPassword: f.o.value, newPassword: f.n.value}); session.profile = d.profile; updateAuthUI(); toast('Password updated.'); openProfile(); }
     catch(err){ showErr('fcErr', err.message); busy(e.target, false); }
   };
 }
@@ -814,7 +839,7 @@ function openProfile(){
     <details class="mt-5 border rounded-lg p-3"><summary class="font-semibold text-navy-800 cursor-pointer">Change password</summary>
       <form id="pwForm" class="grid sm:grid-cols-3 gap-3 mt-3">
         <label class="block">Current<input name="o" type="password" autocomplete="current-password" class="${INP}"></label>
-        <label class="block">New (min 8)<input name="n" type="password" autocomplete="new-password" class="${INP}"></label>
+        <label class="block">New password<input name="n" type="password" autocomplete="new-password" class="${INP}"></label>
         <label class="block">Repeat new<input name="r" type="password" autocomplete="new-password" class="${INP}"></label>
         <p id="pwErr" class="sm:col-span-3 text-red-600 text-sm hidden"></p>
         <div class="sm:col-span-3 flex justify-end"><button class="px-4 py-2 rounded-lg bg-navy-800 hover:bg-navy-700 text-white font-semibold">Change password</button></div>
@@ -824,7 +849,7 @@ function openProfile(){
     e.preventDefault(); busy(e.target, true);
     try {
       const d = await authCall('updateProfile', {fields: readFields(e.target)});
-      session.profile = d.profile; closeModal(); toast('Profile updated. Thank you!'); await loadData();
+      session.profile = d.profile; updateAuthUI(); closeModal(); toast('Profile updated. Thank you!'); await loadData();
     } catch(err){ showErr('profErr', err.message); busy(e.target, false); }
   };
   $('pwForm').onsubmit = async e => {
@@ -837,6 +862,8 @@ function openProfile(){
 }
 
 $('btnLogin').onclick = () => openLogin();
+$('wEdit').onclick = openProfile;
+$('results').addEventListener('click', e => { if (e.target.closest('[data-edit-own]')) openProfile(); });
 $('btnProfile').onclick = openProfile;
 $('btnLogout').onclick = async () => { const t = session && session.token; endSession(); closeModal(); try { await api('logout', {token: t}); } catch(e){} toast('Logged out.'); };
 
@@ -847,9 +874,9 @@ $('btnRegister').onclick = () => {
   <form id="regForm" class="grid sm:grid-cols-2 gap-3" novalidate>
     ${profileFields({country:'India', privacy:'public'})}
     <fieldset class="sm:col-span-2 border rounded-lg p-3 grid sm:grid-cols-3 gap-3">
-      <legend class="px-1 font-semibold text-navy-800">Create your login (to update your profile later)</legend>
+      <legend class="px-1 font-semibold text-navy-800">Create your login (any username and password you like)</legend>
       <label class="block">Username *<input name="username" autocomplete="username" autocapitalize="none" class="${INP}" placeholder="e.g. firstname.lastname"></label>
-      <label class="block">Password * (min 8)<input name="password" type="password" autocomplete="new-password" class="${INP}"></label>
+      <label class="block">Password *<input name="password" type="password" autocomplete="new-password" class="${INP}"></label>
       <label class="block">Repeat password *<input name="password2" type="password" autocomplete="new-password" class="${INP}"></label>
     </fieldset>
     <p id="regErr" class="sm:col-span-2 text-red-600 text-sm hidden"></p>
