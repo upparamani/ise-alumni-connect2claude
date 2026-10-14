@@ -186,7 +186,8 @@ function createCore(store, env) {
   const rid = () => env.uuid().replace(/-/g, '');
   const hashPw = (salt, pw) => env.sha256(salt + ':' + pw);
   const pick = (r, keys) => { const o = {}; keys.forEach(k => { o[k] = r[k] == null ? '' : r[k]; }); return o; };
-  const pwOk = p => typeof p === 'string' && p.length >= 8 && p.length <= 100;
+  const pwOk = p => typeof p === 'string' && p.length >= 1 && p.length <= 200;          // alumni: any password they like
+  const admPwOk = p => typeof p === 'string' && p.length >= 8 && p.length <= 200;       // admin passcode keeps a minimum
 
   /* ---------- validation ---------- */
   function clean(f, allowed) {
@@ -225,7 +226,8 @@ function createCore(store, env) {
     return {
       id: r.id, name: semi ? '' : r.name, batch: r.batch, designation: r.designation,
       company: semi ? '' : r.company, city: r.city, country: r.country, domain: r.domain,
-      expertise: r.expertise, linkedin: semi ? '' : r.linkedin, mentor: truthy(r.mentor), talks: truthy(r.talks), privacy: r.privacy
+      expertise: r.expertise, linkedin: semi ? '' : r.linkedin, mentor: truthy(r.mentor), talks: truthy(r.talks), privacy: r.privacy,
+      registered: truthy(r.claimed)   // true once the alumnus has activated their own login (or self-registered)
     };
   }
 
@@ -315,9 +317,9 @@ function createCore(store, env) {
       const c = clean(rec, ALUM_FIELDS);
       ['name', 'usn', 'batch', 'designation', 'company', 'city', 'country', 'domain', 'email'].forEach(k => { if (!c[k]) fail('Please fill all required fields.'); });
       c.privacy = c.privacy || 'public';
-      const u = s(q.username, 40).toLowerCase();
-      if (!/^[a-z0-9._-]{3,30}$/.test(u)) fail('Username must be 3 to 30 characters: letters, numbers, dot, underscore or hyphen.');
-      if (!pwOk(q.password)) fail('Password must be at least 8 characters.');
+      const u = s(q.username, 100).toLowerCase();
+      if (!u) fail('Please choose a username.');
+      if (!pwOk(q.password)) fail('Please choose a password.');
       const all = store.all();
       if (all.some(x => lc(x.username) === u)) fail('That username is already taken.');
       if (all.some(x => (nameKey(x.name) === nameKey(c.name) && x.batch === c.batch) || (c.usn && lc(x.usn) === lc(c.usn))))
@@ -347,9 +349,8 @@ function createCore(store, env) {
       const r = sessionAlumnus(q.token);
       checkLock('c:' + r.id);
       if (!r.passwordHash || hashPw(r.salt, String(q.oldPassword || '')) !== r.passwordHash) { recordFail('c:' + r.id); fail('Your current password is incorrect.'); }
-      if (!pwOk(q.newPassword)) fail('New password must be at least 8 characters.');
+      if (!pwOk(q.newPassword)) fail('Please enter a new password.');
       if (q.newPassword === q.oldPassword) fail('Please choose a password different from the current one.');
-      if (lc(q.newPassword) === lc(r.username)) fail('Password must not be the same as your username.');
       clearFail('c:' + r.id);
       setPassword(r, q.newPassword, false);
       r.claimed = true; r.updatedAt = env.now(); r.updatedBy = r.username;
@@ -438,7 +439,7 @@ function createCore(store, env) {
 
     adminPasscode(q) {
       requireAdmin(q.token);
-      if (!pwOk(q.newPasscode)) fail('Passcode must be at least 8 characters.');
+      if (!admPwOk(q.newPasscode)) fail('Passcode must be at least 8 characters.');
       const salt = rid();
       store.setProp('ADMIN_SALT', salt);
       store.setProp('ADMIN_HASH', hashPw(salt, q.newPasscode));
@@ -456,7 +457,7 @@ function createCore(store, env) {
 
 
 /* ======== API layer: talks to the Google Apps Script backend, or to a local demo store when API_URL is empty ======== */
-const API_URL = 'https://script.google.com/macros/s/AKfycbw7jB3Hh9qigVA1j2vBIwnZJiLGflYSoq93vytbgROi_tXvjjnWEZeOm-a2V72nF9hD/exec';   // ← paste your Apps Script Web App URL here (ends with /exec). Leave empty to try the portal in local demo mode.
+const API_URL = '';   // ← paste your Apps Script Web App URL here (ends with /exec). Leave empty to try the portal in local demo mode.
 
 function sha256hex(str) {            // synchronous SHA-256 (UTF-8) used by the local demo store only
   let ascii = unescape(encodeURIComponent(str));
