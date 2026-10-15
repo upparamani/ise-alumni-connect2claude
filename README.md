@@ -30,7 +30,7 @@ The pages never touch the Sheet directly. They only call the Apps Script web app
 > Whenever you later change `Code.gs`: **Deploy → Manage deployments → ✏ Edit → Version: New version → Deploy**. The URL stays the same.
 
 ## 3. Connect the pages
-Open `index.html` and `admin.html` in Notepad and find this line in each (search for `API_URL`):
+Use the files inside **`ISE_Alumni_LIVE_upload_to_GitHub.zip`** (unzip it). They are the same pages but contain **no alumni data**: names come only from your Google Sheet, so a public GitHub repo never exposes anyone who later chooses Semi-Anonymous or Stealth. Open its `index.html` and `admin.html` in Notepad and find this line in each (search for `API_URL`):
 
 ```js
 const API_URL = '';
@@ -39,8 +39,8 @@ Paste your URL between the quotes in **both** files, e.g. `const API_URL = 'http
 
 ## 4. Publish on GitHub Pages
 1. <https://github.com> → **New repository** (e.g. `ise-alumni`, Public).
-2. **Add file → Upload files** → upload **only** `index.html` and `admin.html` → Commit.
-   Do **not** upload `demo-seed.js`, `Code.gs` or the `.xlsx`.
+2. **Add file → Upload files** → upload **only** the two files from the LIVE zip (`index.html`, `admin.html`) → Commit.
+   Do **not** upload the seeded `index.html`/`admin.html` from the main download, `Code.gs` or the `.xlsx`.
 3. **Settings → Pages → Build and deployment → Deploy from a branch → `main` / `(root)` → Save.**
 4. After a minute your site is at `https://<your-github-username>.github.io/ise-alumni/` — that is the link you share.
    Faculty dashboard: `…/ise-alumni/admin.html`.
@@ -54,7 +54,7 @@ Paste your URL between the quotes in **both** files, e.g. `const API_URL = 'http
 4. New alumni can use **+ Register as Alumnus**. Their entry waits in the dashboard for **Approve** (to publish instantly instead, set `AUTO_APPROVE: true` in `Code.gs`).
 
 ## Trying it on your computer first (demo mode)
-Keep `index.html`, `admin.html` and `demo-seed.js` in one folder and leave `API_URL` empty. Open `index.html`. You will see the 20 seeded alumni; logins, edits and approvals work, but the data lives only in that browser. Demo admin passcode: `gitise2026`.
+The main `index.html` and `admin.html` (outside the zip) already contain the 20 alumni from your spreadsheet and work standalone: just double-click `index.html`. You will see all 20 alumni; logins, edits and approvals work, but the data lives only in that browser (a static GitHub upload of these seeded files has no shared database, so each visitor's edits stay on their own device; use the LIVE zip + Google Sheet for real use). Demo admin passcode: `gitise2026`.
 
 ## Security notes (what is and isn't protected)
 - Passwords: per-user random salt + SHA-256, never stored or logged in plain text. Alumni may choose any username/password (no length rule), so a very short password is easy to guess; the 5-attempt lockout limits the damage. The admin passcode must be at least 8 characters. 5 wrong attempts lock that account (or the admin login) for 15 minutes. Logins last 2 hours.
