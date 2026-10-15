@@ -537,8 +537,9 @@ async function api(action, payload) {
   const req = Object.assign({ action: action }, payload || {});
   if (!API_URL) return JSON.parse(JSON.stringify(demoCore.handle(req)));
   let res, j;
-  try { res = await fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(req) }); }
-  catch (e) { throw new Error('Cannot reach the server. Check your internet connection.'); }
+  const ac = new AbortController(), tm = setTimeout(() => ac.abort(), 20000);
+  try { res = await fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(req), signal: ac.signal }); clearTimeout(tm); }
+  catch (e) { clearTimeout(tm); throw new Error('Cannot reach the server. Check your internet connection.'); }
   try { j = await res.json(); } catch (e) { throw new Error('The server returned an unexpected response.'); }
   if (!j.ok) throw new Error(j.error || 'Request failed.');
   return j.data;
@@ -728,6 +729,10 @@ function banner(msg, kind){
 }
 async function loadData(){
   let d = null, err = null;
+  if (API_URL && SEED.length) {            // show the published directory instantly; upgrade when the server answers
+    try { const sn = snapshotList(); alumni = sn.alumni; features = sn.features || features; loaded = true; refresh();
+      banner('<b>Loading the live directory…</b> showing the department\'s published list meanwhile.', 'info'); } catch(e0){}
+  }
   try { d = await api('list'); } catch(e){ err = e; }
   if (API_URL && SEED.length && (err || !d || !d.alumni || !d.alumni.length)) {
     // Backend unreachable or still empty: show the department's published directory (read-only snapshot).
