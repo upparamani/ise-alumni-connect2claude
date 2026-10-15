@@ -454,7 +454,7 @@ function createCore(store, env) {
 
 
 /* ======== API layer: talks to the Google Apps Script backend, or to a local demo store when API_URL is empty ======== */
-const API_URL = '';   // ← paste your Apps Script Web App URL here (ends with /exec). Leave empty to try the portal in local demo mode.
+const API_URL = 'AUkAhnT4XJV8X0YCJseOq753eVBYpOpokxwnRd5ORSVR3kipw4tpOJznOC7KfA2x2eDSSStShpq009UP2wsK3cJjplCdlT7ekpAmkTK6NaJh0cb5kU7iUvB-TArObYzU5N-cR0rt0sE_sEoM0KJ3wzMmhYpi2gMXBhBYup40yvKmSaQGzqVyv1pvjuYSoMDp1gaHSXPwalYRbOs0Oj0QGH3rv2ngnReD3c9dwojN8t3eV5WjSZESknyRnSD36KLtvqZwbRlk36Quj9hACmzFi98OjFEVV9MwEw&lib=MkqNFCvilMdd-2QCTPmMp43ZyPGuaBK01';   // ← paste your Apps Script Web App URL here (ends with /exec). Leave empty to try the portal in local demo mode.
 
 function sha256hex(str) {            // synchronous SHA-256 (UTF-8) used by the local demo store only
   let ascii = unescape(encodeURIComponent(str));
