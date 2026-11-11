@@ -46,7 +46,7 @@ Paste your URL between the quotes in **both** files, e.g. `const API_URL = 'http
    Faculty dashboard: `…/ise-alumni/admin.html`.
 
 ## 5. First use
-1. Open `admin.html` on your site → passcode **`gitise2026`** → immediately click **⚙ Change passcode**.
+1. Open `admin.html` on your site → passcode **`0000`** → immediately click **⚙ Change passcode**.
 2. Click **🔑 Generate login invites for everyone not yet activated**. A window lists every alumnus with a username and one-time temporary password, plus ready-to-send messages (copy / WhatsApp / email / CSV).
    - The sheet has no phone numbers or emails yet. Add them with **✏️ Edit** to get one-click WhatsApp/Email buttons, or just use **Copy message**.
    - Passwords are stored as hashes only, so each temporary password is visible **only at that moment**. Send them privately and don't keep the list.
